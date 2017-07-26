@@ -1,4 +1,11 @@
 $(function(){
+    $('.portfolio-wrapper').on('mouseenter','li',function(){
+        console.log(1)
+        $(this).addClass('change').siblings().removeClass('change')
+    }).on('mouseleave','li',function(){
+        $(this).removeClass('change')
+    })
+
     var $navs=$('.tipscroll>li>a'),
     $sections=$('.section'),
     navlength=$navs.length-1;
