@@ -396,28 +396,39 @@ section:nth-child(even){
     height: 50px;
 }
 
-
-/*#waterfull{
-    max-width: 900px;
-    margin: 0 auto;
-}*/
-#waterfull .pic{
+/*waterfall*/
+#wrap #pic-ct{
     position: relative;
-    /*background: red;*/
+    padding-left: 20px;
 }
-#waterfull .pic>li{
+#wrap #pic-ct>li{
     position: absolute;
     margin: 5px;
-    width: 230px;
+    width: 210px;
     background-color: #fff;
+    border: 1px solid #dfdfdf;
     transition:all 0.8s;
 }
 .waterimg{
-    width: 230px;
+    width: 200px;
     margin:5px;
 }
-#waterfull .item{
+#wrap .item{
     display: none;
+}
+#wrap .more{
+    border: none;
+    font-size: 18px;
+    color: #fff;
+    font-weight: bold;
+    outline: none;
+    background-color: #fed136;
+    /*background-color: red;*/
+    width: 219px;
+    height: 69px;
+    line-height: 66px;
+    border-radius: 3px;
+    cursor: pointer;
 }
 .pullpictures-h2{
     margin-bottom:20px;

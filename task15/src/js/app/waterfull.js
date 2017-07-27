@@ -1,80 +1,142 @@
-$(function(){
-    var curPage=1
-    var perPageCount=7
-    var liwidth=$('.item').outerWidth(true);
-    var waterfallarr=[]
-    var arrlen=parseInt($('.pic').width()/liwidth)
-    for(var i=0;i<arrlen;i++){
-        waterfallarr[i]=0
-    }
-    /*
-    1、获取数据（ajax）
-    2、将数据拼装成dom，通过瀑布流算法渲染显示到页面
-    （这里，数据获取加载之后，我才能知道img的高度是多少，需要做个load事件）
-    3、懒加载，隐藏的.load元素显示时，就请求数据加载显示，循环回第一步
-    */
-    Loaddata()
-    function Loaddata(){
-        getData(function(newsList){
-            $.each(newsList,function(idx,news){
-                var $nodes=getNodes(news)
-                $nodes.find('img').load(function(){
-                    $('.pic').append($nodes)
-                    // console.log($nodes,'loading。。。')
-                    waterFallPlace($nodes)
-                })
-            })
-        })
-    }
-    /*当浏览器窗口放大缩小时*/
-    $(window).resize(function(){
-        Loaddata()
-    })
-    $('.loadpicture').on('click',function(){
-        Loaddata()
-    })
-    /*从接口获取数据*/
-    //新浪新闻接口： http://platform.sina.com.cn/slide/album_tech?jsoncallback=func&app_key=1271687855&num=3&page=4
-    //http://platform.sina.com.cn/slide/album_tech
-    function getData(callback){
-        $.ajax({
-            url:'http://platform.sina.com.cn/slide/album_tech',
-            dataType:'jsonp',
-            jsonp:'jsoncallback',
-            data:{
-                app_key:'1271687855',
-                num:perPageCount,
-                page:curPage
+
+define(function(require) {
+    var $=require('jquery');
+    var waterFall = (function(){
+            function waterFallFlow($target){
+                this.$target = $target;
+                this.$getNews = this.$target.find('.more');
+                this.$item = this.$target.find('.item');
+                this.$Ct = this.$target.find('#pic-ct');
+                this.init();
+                this.loadAndPlace();
+                this.bind();
             }
-        }).done(function(res){
-            if(res && res.status && res.status.code==="0"){
-                callback(res.data); 
-                curPage++
-            }else{
-                console.log('get data error');
+            waterFallFlow.prototype = {
+                init: function(){
+                    this.curPage = 1;
+                    this.perPageCount = 6;
+                    this.click = true;
+                    this.render();
+                },
+                render: function(){
+                    this.colSumHeight = [];
+                    this.nodeWidth = this.$item.outerWidth(true);
+                    console.log(this.$Ct.width());
+                    console.log(this.nodeWidth);
+                    this.colNum = parseInt(this.$Ct.width()/this.nodeWidth);
+                    for(var i = 0; i < this.colNum; i++){
+                        this.colSumHeight.push(0);
+                    }
+                },
+                bind: function(){
+                    var _this = this;
+                    this.$getNews.on('click', function(){
+                        if(!_this.click) {
+                            return;
+                        }
+                        _this.click = false;
+                        _this.loadAndPlace();
+                    })
+                },
+                loadAndPlace: function(){
+                    var _this = this;
+                    $.ajax({
+                        /*
+                        这里使用了新浪新闻的 jsonp 接口，
+                        大家可以直接看数据， 
+                        如： http://platform.sina.com.cn/slide/album_tech?
+                        jsoncallback=func&app_key=1271687855&num=3&page=4
+                        */
+                        url: 'http://platform.sina.com.cn/slide/album_tech',
+                        type: 'get',
+                        dataType: 'jsonp',
+                        jsonp: 'jsoncallback',
+                        data: {
+                            app_key: '1271687855',
+                            num: _this.perPageCount,  
+                            page: _this.curPage      
+                        }
+                    }).done(function(ret){
+                        if(ret && ret.status && ret.status.code === "0"){
+                            console.log('获取数据成功！');
+                            _this.place(ret.data);
+                            _this.curPage++;
+                        }
+                        else {
+                            console.log('获取数据失败！');
+                        }
+                    });
+                },
+                place: function(nodeList){
+                    //console.log(nodeList);
+                    var _this = this;
+                    //节点生成后添加到页面上
+                    this.renderData(nodeList);
+                    //创建存储 defered 对象的数组
+                    var defereds = [];
+                    console.log(this.$nodes);
+                    console.log(this.$nodes.eq(2).height());
+                    this.$nodes.find('img').each(function(){
+                        var defer = $.Deferred();
+                        //当每个图片加载完成后，执行 resolve
+                        $(this).on('load', function(){
+                            defer.resolve();
+                        });
+                        defereds.push(defer);
+                    });
+                    /*当所有的图片都执行 resolve 后，
+                    即全部图片加载后，执行下面的内容*/
+                    $.when.apply(null, defereds).done(function(){
+                        console.log('new images all loaded ...');
+                        /* 
+                    当节点里的图片全部加载后再使用瀑布流计算，
+                        否则会因为图片未加载 item 高度计算错误导致瀑布流高度计算出问题
+                        */
+                        _this.waterFallPlace(_this.$nodes);
+                    })
+                },
+                renderData: function(items){
+                    var _this = this;
+                    console.log(items.length);
+                    var tpl = '';
+                    for(var i = 0; i < items.length; i++){
+                        tpl += '<li>'
+                            +      '<a href="' + items[i].url + '" class="link">'
+                            +          '<img class="waterimg" src="' + items[i].img_url + '" alt="">'
+                            +      '</a></li>';
+                    }
+                    this.$nodes = $(tpl);
+                    this.$Ct.append(this.$nodes);   
+                },
+                waterFallPlace: function($nodes){
+                    var _this = this;
+                    $nodes.each(function(){
+                        var idx = 0,
+                            $cur = $(this),
+                            minSumHeight = _this.colSumHeight[0];
+                        for(var i = 0; i < _this.colSumHeight.length; i++){
+                            if(_this.colSumHeight[i] <  minSumHeight){
+                                idx = i;
+                                minSumHeight = _this.colSumHeight[i];
+                            }
+                        }
+                        $cur.css({
+                            left: idx * _this.nodeWidth,
+                            top: minSumHeight
+                        });
+                        _this.colSumHeight[idx] += $cur.outerHeight(true);
+                        _this.$Ct.height(Math.max.apply(null, _this.colSumHeight));
+                        _this.click = true;
+                    })
+                }
             }
-        })
-    }
-    /*html的拼装*/
-    function getNodes(item){
-        var html=''
-        html += '<li><a href="' +item.url+ '" class="link">'
-        html += '<img src="'+item.img_url+'" alt="" class="waterimg"></a></li>'
-        return $(html)
-        //返回一个jquery对象
-    }
-    //瀑布流
-    function waterFallPlace($nodes){
-        $nodes.each(function(){
-            var minValue=Math.min.apply(null,waterfallarr)
-            var minIndex=waterfallarr.indexOf(minValue)
-            $(this).css({
-                top:waterfallarr[minIndex],
-                left:$(this).outerWidth(true) * minIndex, //计算包括外边距
-                opacity:1
-            })
-            waterfallarr[minIndex] += $(this).outerHeight(true);
-            $('.pic').height(Math.max.apply(null,waterfallarr));
-        })
-    }
-})
+            return {
+                flow: function($target){
+                    $target.each(function(idx, node){
+                        new waterFallFlow($(node));
+                    })
+                }
+            }
+        })();
+    return waterFall;
+});

@@ -1,10 +1,10 @@
 define(['jquery'], function($){
-    function Wrapperhover(){
+    function Wrapperhover($target){
+        this.$target=$target;
         this.bindEvent();
     }
     Wrapperhover.prototype.bindEvent=function(){
-        var _this=this;
-        $('.portfolio-wrapper').on('mouseenter','li',function(){
+        this.$target.on('mouseenter','li',function(){
             console.log(1)
             $(_this).addClass('change').siblings().removeClass('change')
         }).on('mouseleave','li',function(){
@@ -13,3 +13,5 @@ define(['jquery'], function($){
     }
     return Wrapperhover;
 });
+
+$('.portfolio-wrapper')
